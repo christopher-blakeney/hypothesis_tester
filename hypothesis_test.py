@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+
+import math
+import numpy as np
+from scipy import stats
+import matplotlib.pyplot as plt
+import statsmodels.api as sm
+
+"""
+CONTINUOUS DATA HYPOTHESIS TESTER
+
+MILESTONES
+- Finish normality function
+    - Create histogram, Q-Q plot and p test (both)
+- 
+
+TODO
+- Differentiate between independent and not t-test
+- Get better acquainted with the assumptions and make these satisfied within the test function
+- Would be cool to perform preliminary analysis on the data and suggest which test would be most suitable.
+- Make bins user input for histogram
+- Just put all the main assumption checks in this file, create a new python proj for the actual tests and another for the user interface.
+"""
+
+__author__ = "Christopher J. Blakeney"
+__version__ = "0.1.0"
+__license__ = ""
+
+
+def check_normality(data, save_path="null", options=["qq"]):
+    # alpha threshold
+    alpha = 0.05
+    # graphical tests
+    # generate histogram if option is selected
+    if "histogram" in options:
+        # create histogram from data
+        plt.hist(
+            data, edgecolor="black", density=True, bins="auto", color="b", alpha=0.8
+        )
+        # create normality curve line
+        mu, std = stats.norm.fit(data)
+        xmin, xmax = plt.xlim()
+        x = np.linspace(xmin, xmax, 100)
+        p = stats.norm.pdf(x, mu, std)
+        plt.plot(x, p, "k", color="red", linewidth=1.5)
+
+        # histogram labels
+        plt.xlabel("Value")
+        plt.ylabel("Frequency")
+        plt.title("Histogram with Normal Curve")
+        plt.show()
+        # print(data.mean(), data.std())
+    # generate Q-Q plot if option is selected
+    elif "qq" in options:
+        fig = sm.qqplot(data, line="s")
+        plt.show()
+    # non-graphical tests
+    elif "shapiro-wilks" in options:  # reliable on samples < 1000
+        print("\nShapiro-Wilks W Test")
+        print("  H0: The data is normally distributed")
+        print("  H1: The data is NOT normally distributed")
+        test_stat_normality, p_value_normality = stats.shapiro(data)
+        if p_value_normality < alpha:
+            print(
+                f"    t-stat=%.3f, p=%.4f (p < {alpha})"
+                % (test_stat_normality, p_value_normality)
+            )
+            print("    Reject H0: The data is not normally distributed")
+            result = False
+        else:
+            print(
+                f"    t-stat=%.3f, p=%.4f (p > {alpha})"
+                % (test_stat_normality, p_value_normality)
+            )
+            print("    Reject H1: The data is normally distributed")
+            result = True
+    return result
+
+
+def check_variance_equality(group_1, group_2):
+    # alpha threshold
+    alpha = 0.05
+    # levenes test for equality of variances
+    print("\nLevenes Equality of Variances Test:")
+    test_stat_variance, p_value_variance = stats.levene(group_1, group_2)
+    print("p value: %.4f" % p_value_variance)
+    if p_value_variance < alpha:
+        print("The variances of the samples are different")
+        result = False
+    else:
+        print("The variances of the samples are the same")
+        result = True
+    return result
+
+
+def ttest(group_1, group_2, parametric=True, groups=2, paired=False):
+    # check all assumptions
+    if (
+        check_normality(group_1)
+        and check_normality(group_2)
+        and check_variance_equality(group_1, group_2)
+    ):
+        print("\n* Assumptions verified *")
+    # perform ttest
+    print("\nT-Test for Independent Samples")
+    ttest, p_value = stats.ttest_ind(group_1, group_2)
+    print("p value: %.8f" % p_value)
+    print("p value one-sided: %.4f" % (float(p_value) / 2))
+
+
+def main():
+    data = np.random.normal(0, 1, 1000)
+
+    check_normality(data)
+
+
+if __name__ == "__main__":
+    main()

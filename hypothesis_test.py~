@@ -1,0 +1,134 @@
+#!/usr/bin/env python3
+
+import math
+import numpy as np
+from scipy import stats
+import matplotlib.pyplot as plt
+import statsmodels.api as sm
+
+"""
+CONTINUOUS DATA HYPOTHESIS TESTER
+
+MILESTONES
+- Finish normality function
+    - Create histogram, Q-Q plot and p test (both)
+- 
+
+TODO
+- Differentiate between independent and not t-test
+- Get better acquainted with the assumptions and make these satisfied within the test function
+- Would be cool to perform preliminary analysis on the data and suggest which test would be most suitable.
+"""
+
+__author__ = "Christopher J. Blakeney"
+__version__ = "0.1.0"
+__license__ = ""
+
+
+def check_normality(data, save_path="null", options=["shapiro-wilks"]):
+    # alpha threshold
+    alpha = 0.05
+    # generate histogram if option is selected
+    if "hist" in options:
+        plt.hist(data, edgecolor="black", bins=20)
+        plt.show()
+    # generate Q-Q plot if option is selected
+    elif "qq" in options:
+        fig = sm.qqplot(data, line="45")
+        plt.show()
+    # non-graphical tests
+    elif "shapiro-wilks" in options:  # preferred for smaller samples
+        print("\nShapiro-Wilks W Test")
+        test_stat_normality, p_value_normality = stats.shapiro(data)
+        print("p value: %.4f" % p_value_normality)
+        if p_value_normality < alpha:
+            print("The data is not normally distributed")
+            result = False
+        else:
+            print("The data is normally distributed")
+            result = True
+    return result
+
+
+def check_variance_equality(group_1, group_2):
+    # alpha threshold
+    alpha = 0.05
+    # levenes test for equality of variances
+    print("\nLevenes Equality of Variances Test:")
+    test_stat_variance, p_value_variance = stats.levene(group_1, group_2)
+    print("p value: %.4f" % p_value_variance)
+    if p_value_variance < alpha:
+        print("The variances of the samples are different")
+        result = False
+    else:
+        print("The variances of the samples are the same")
+        result = True
+    return result
+
+
+def ttest(group_1, group_2, parametric=True, groups=2, paired=False):
+    # check all assumptions
+    if (
+        check_normality(group_1)
+        and check_normality(group_2)
+        and check_variance_equality(group_1, group_2)
+    ):
+        print("\n* Assumptions verified *")
+    # perform ttest
+    print("\nT-Test for Independent Samples")
+    ttest, p_value = stats.ttest_ind(group_1, group_2)
+    print("p value: %.8f" % p_value)
+    print("p value one-sided: %.4f" % (float(p_value) / 2))
+
+
+def main():
+    ex_data_1 = np.array(
+        [
+            94.0,
+            84.9,
+            82.6,
+            69.5,
+            80.1,
+            79.6,
+            81.4,
+            77.8,
+            81.7,
+            78.8,
+            73.2,
+            87.9,
+            87.9,
+            93.5,
+            82.3,
+            79.3,
+            78.3,
+            71.6,
+            88.6,
+            74.6,
+            74.1,
+            80.6,
+        ]
+    )
+    ex_data_2 = np.array(
+        [
+            77.1,
+            71.7,
+            91.0,
+            72.2,
+            74.8,
+            85.1,
+            67.6,
+            69.9,
+            75.3,
+            71.7,
+            65.7,
+            72.6,
+            71.5,
+            78.2,
+        ]
+    )
+
+    ttest(ex_data_1, ex_data_2)
+
+
+if __name__ == "__main__":
+    main()

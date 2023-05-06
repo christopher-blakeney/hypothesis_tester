@@ -8,8 +8,6 @@ from scipy import stats
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import pandas as pd
-from alive_progress import alive_bar
-from time import sleep
 
 """
 CONTINUOUS DATA HYPOTHESIS TESTER
@@ -17,7 +15,7 @@ CONTINUOUS DATA HYPOTHESIS TESTER
 MILESTONES
 - Finish implementing all assumption checks
     x Graphical checks
-    - Statistical tests
+    x Statistical tests
 - Work out all options
 
 TODO
@@ -27,6 +25,10 @@ TODO
 - Just put all the main assumption checks in this file, create a new python proj for the actual tests and another for the user interface.
 - Change to one loop for each statistical test, lots of repeat code; condense it.
 - implement sys.stdout if option selected
+
+CURRENT WORKING
+- fix uniquify function, need to replace end numerical value if it is numerical
+
 """
 
 __author__ = "Christopher J. Blakeney"
@@ -34,31 +36,53 @@ __version__ = "0.1.0"
 __license__ = ""
 
 
-def check_normality(data, data_label="", options=[]):
-    print("\nCHECKING NORMALITY...")
-    # progress bar
-    with alive_bar(100, bar="filling") as bar:
-        for i in range(100):
-            sleep(0.01)
-            bar()
-    print(f"\n> \033[1m {data_label}")
-    print("\033[0m")
-    print("\nDescriptive Statistics:")
-    df = pd.DataFrame(data)
-    print(df.describe())
-    # counter to track how many tests have passed
-    normality_checks_passed = 0
-    # alpha threshold
+def check_normality(
+    data,
+    data_label="",
+    statistical_options=[],
+    graphical_options=[],
+    graph_save_path="null",
+):
+    # checks normailty assumption and returns dict
+    # conclusion false by default
+    normality_tests_dict = {
+        "shapiro-wilks": {
+            "t": 0.0,
+            "p": 0.0,
+            "conclusion": False,
+            "interpretation": "",
+        },
+        "k-squared": {
+            "t": 0.0,
+            "p": 0.0,
+            "conclusion": False,
+            "interpretation": "",
+        },
+        "kolmogorov-smirnov": {
+            "t": 0.0,
+            "p": 0.0,
+            "conclusion": False,
+            "interpretation": "",
+        },
+    }
+    # alpha threshold for normality tests
     alpha = 0.05
-    # set results to null as default
-    shapiro_result = "not included in analysis"
-    ksquare_result = "not included in analysis"
-    ks_result = "not included in analysis"
-    # loop over options
-    for option in options:
-        # graphical tests
-        # generate histogram if option is selected
-        if option == "histogram":
+
+    # pass interpretation
+    pass_i = "data is likely normally distributed"
+    # fail interpretation
+    fail_i = "data is likely not from a normal distribution"
+
+    # create folder to store graphs
+    if graph_save_path != "null":
+        folder_name = r"hypy_graphical_output"
+        path = os.path.join(graph_save_path, folder_name)
+        path = uniquify_dir(path)
+        os.mkdir(path)
+
+    # graphical options
+    for i in graphical_options:
+        if i == "histogram":
             # create histogram from data
             plt.hist(
                 data, edgecolor="black", density=True, bins="auto", color="b", alpha=0.8
@@ -75,75 +99,51 @@ def check_normality(data, data_label="", options=[]):
             plt.xlabel("Value")
             plt.ylabel("Frequency")
             plt.title(
-                f"Normalized Histogram with Normal Curve\nμ={round(data.mean(), 4)}, σ={round(np.std(data), 4)}"
+                f"Normalized Histogram with Normal Curve: {data_label}\nμ={round(data.mean(), 4)}, σ={round(np.std(data), 4)}"
             )
-            plt.show()
-            # print(data.mean(), data.std())
-            # generate Q-Q plot if option is selected
-        elif option == "qq-plot":
+            # save histogram
+            hist_file_name = f"Histogram for {data_label}.png"
+            hist_save_path = os.path.join(path, hist_file_name)
+            plt.savefig(hist_save_path)
+        elif i == "qq-plot":
+            # create qq plot from data
             fig = sm.qqplot(data, line="s")
-            plt.title("Quartile-Quartile Plot")
-            plt.show()
+            plt.title(f"Quartile-Quartile Plot: {data_label}")
+            # save figure
+            qq_file_name = f"QQ-plot for {data_label}.png"
+            qq_save_path = os.path.join(path, qq_file_name)
+            plt.savefig(qq_save_path)
 
-            # non-graphical tests
-        elif option == "shapiro-wilks":  # reliable on samples < 1000
+    # statistical tests
+    for j in statistical_options:
+        if j == "shapiro-wilks":  # reliable for samples < 1000
             test_stat_shapiro, p_value_shapiro = stats.shapiro(data)
+            normality_tests_dict[j]["t"] = test_stat_shapiro
+            normality_tests_dict[j]["p"] = p_value_shapiro
             if p_value_shapiro < alpha:
-                shapiro_result = (
-                    f"\n \033[1m Shapiro-Wilks W Test: (test-stat=%.3f, p=%.4f < α={alpha})"
-                    "\033[0m"
-                    f"\n    Conclusion: data is likely NOT normally distributed\n"
-                    % (test_stat_shapiro, p_value_shapiro)
-                )
+                normality_tests_dict[j]["interpretation"] = fail_i
             else:
-                shapiro_result = (
-                    f"\n \033[1m Shapiro-Wilks W Test: (test-stat=%.3f, p=%.4f > α={alpha})"
-                    "\033[0m"
-                    "\n    Conclusion: data is likely normally distributed\n"
-                    % (test_stat_shapiro, p_value_shapiro)
-                )
-                normality_checks_passed += 1
-        elif option == "k-squared":
+                normality_tests_dict[j]["conclusion"] = True
+                normality_tests_dict[j]["interpretation"] = pass_i
+        elif j == "k-squared":
             test_stat_ksquare, p_value_ksquare = stats.normaltest(data)
+            normality_tests_dict[j]["t"] = test_stat_ksquare
+            normality_tests_dict[j]["p"] = p_value_ksquare
             if p_value_ksquare < alpha:
-                ksquare_result = (
-                    f"\n \033[1m D'Agostino's K-Squared Test: (test-stat=%.3f, p=%.4f < α={alpha})"
-                    "\033[0m"
-                    f"\n    Conclusion: data is likely NOT normally distributed\n"
-                    % (test_stat_ksquare, p_value_ksquare)
-                )
+                normality_tests_dict[j]["interpretation"] = fail_i
             else:
-                ksquare_result = (
-                    f"\n \033[1m D'Agostino's K-Squared Test: (test-stat=%.3f, p=%.4f > α={alpha})"
-                    "\033[0m"
-                    "\n    Conclusion: data is likely normally distributed\n"
-                    % (test_stat_ksquare, p_value_ksquare)
-                )
-                normality_checks_passed += 1
-        elif option == "kolmogorov-smirnov":
+                normality_tests_dict[j]["conclusion"] = True
+                normality_tests_dict[j]["interpretation"] = pass_i
+        elif j == "kolmogorov-smirnov":
             test_stat_ks, p_value_ks = stats.kstest(data, "norm")
+            normality_tests_dict[j]["t"] = test_stat_ks
+            normality_tests_dict[j]["p"] = p_value_ks
             if p_value_ks < alpha:
-                ks_result = (
-                    f"\n \033[1m Kolomogorov-Smirnov Test for Normality: (test-stat=%.3f, p=%.4f < α={alpha})"
-                    "\033[0m"
-                    f"\n    Conclusion: data is likely NOT normally distributed\n"
-                    % (test_stat_ks, p_value_ks)
-                )
+                normality_tests_dict[j]["interpretation"] = fail_i
             else:
-                ks_result = (
-                    f"\n \033[1m Kolomogorov-Smirnov Test for Normality: (test-stat=%.3f, p=%.4f > α={alpha})"
-                    "\033[0m"
-                    "\n    Conclusion: data is likely normally distributed\n"
-                    % (test_stat_ks, p_value_ks)
-                )
-                normality_checks_passed += 1
-        summary = (
-            f"\n* {data_label} passed {normality_checks_passed}/3 normality checks *\n"
-            f"{shapiro_result}"
-            f"{ksquare_result}"
-            f"{ks_result}"
-        )
-    return summary
+                normality_tests_dict[j]["conclusion"] = True
+                normality_tests_dict[j]["interpretation"] = pass_i
+    return normality_tests_dict
 
 
 def check_variance_equality(group_1, group_2):
@@ -161,7 +161,7 @@ def check_variance_equality(group_1, group_2):
         variance_result = (
             f"\n \033[1m Levenes Equality of Variances Test: (test_stat=%.3f, p=%.4f < α={alpha})"
             "\033[0m"
-            "\n    Conclusion: the variances of the samples are sufficiently different\n"
+            "\n    Conclusion: the variances of the samples are likely different\n"
             % (test_stat_variance, p_value_variance)
         )
     else:
@@ -173,16 +173,26 @@ def check_variance_equality(group_1, group_2):
     return variance_result
 
 
+def uniquify_dir(path):
+    counter = 1
+    while os.path.isdir(path):
+        print(path[-1:])
+        # if path[-1:].isnumeric():
+        # path = path.replace(path[:-1], "")
+        path = path + "_" + str(counter)
+        counter += 1
+    return path
+
+
 def main():
     # file structure:
-    # >/PROG_NAME
+    # >/HyPy
     # -->output_summary.txt
     # -->/Graphics
     # ---->Histogram.png
     # ---->Q-Q Plot
 
     data = np.random.normal(1, 50, 325)
-    data_1 = np.random.normal(3, 60, 234)
 
     # txt_summary = "/stats_output/output.txt"
     # save_path = "/Users/christopher/Desktop"  # make this user input
@@ -190,16 +200,25 @@ def main():
     # os.makedir(path)
     # sys.stdout = open(path, "w")
 
-    non_graphical_options = ["shapiro-wilks", "k-squared", "kolmogorov-smirnov"]
-    graphical_options = ["histogram", "qq-plot"]
+    graphical_options = [
+        "histogram",
+        "qq-plot",
+    ]
+    statistical_options = [
+        "shapiro-wilks",
+        "k-squared",
+        "kolmogorov-smirnov",
+    ]
 
-    print("\nStatistical Assumption Checker - Christopher Blakeney")
-
-    print("\nInitialising...")
-
-    print(check_normality(data, "group 1", non_graphical_options))
-    print(check_normality(data_1, "group 2", non_graphical_options))
-    print(check_variance_equality(data, data_1))
+    normality_dict = check_normality(
+        data,
+        "Sample_1 - Frogs",
+        statistical_options,
+        graphical_options,
+        "/Users/christopher/Desktop",
+    )
+    df = pd.DataFrame.from_dict(normality_dict)
+    print(df)
 
     # sys.stdout.close()
 

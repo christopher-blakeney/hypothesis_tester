@@ -8,6 +8,7 @@ from scipy import stats
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import pandas as pd
+import dataframe_image as dfi
 
 """
 CONTINUOUS DATA HYPOTHESIS TESTER
@@ -25,10 +26,11 @@ TODO
 - Just put all the main assumption checks in this file, create a new python proj for the actual tests and another for the user interface.
 - Change to one loop for each statistical test, lots of repeat code; condense it.
 - implement sys.stdout if option selected
+x fix uniquify function, need to replace end numerical value if it is numerical
 
 CURRENT WORKING
-- fix uniquify function, need to replace end numerical value if it is numerical
-
+- round all results
+- output stats output as image so cant be changed
 """
 
 __author__ = "Christopher J. Blakeney"
@@ -41,7 +43,7 @@ def check_normality(
     data_label="",
     statistical_options=[],
     graphical_options=[],
-    graph_save_path="null",
+    save_path="null",
 ):
     # checks normailty assumption and returns dict
     # conclusion false by default
@@ -69,14 +71,14 @@ def check_normality(
     alpha = 0.05
 
     # pass interpretation
-    pass_i = "data is likely normally distributed"
+    pass_i = "likely normally distributed"
     # fail interpretation
-    fail_i = "data is likely not from a normal distribution"
+    fail_i = "likely NOT normally distributed"
 
     # create folder to store graphs
-    if graph_save_path != "null":
-        folder_name = r"hypy_graphical_output"
-        path = os.path.join(graph_save_path, folder_name)
+    if save_path != "null":
+        folder_name = r"hypy_output"
+        path = os.path.join(save_path, folder_name)
         path = uniquify_dir(path)
         os.mkdir(path)
 
@@ -104,7 +106,7 @@ def check_normality(
             # save histogram
             hist_file_name = f"Histogram for {data_label}.png"
             hist_save_path = os.path.join(path, hist_file_name)
-            plt.savefig(hist_save_path)
+            plt.savefig(hist_save_path, dpi=300)
         elif i == "qq-plot":
             # create qq plot from data
             fig = sm.qqplot(data, line="s")
@@ -112,7 +114,7 @@ def check_normality(
             # save figure
             qq_file_name = f"QQ-plot for {data_label}.png"
             qq_save_path = os.path.join(path, qq_file_name)
-            plt.savefig(qq_save_path)
+            plt.savefig(qq_save_path, dpi=300)
 
     # statistical tests
     for j in statistical_options:
@@ -143,7 +145,28 @@ def check_normality(
             else:
                 normality_tests_dict[j]["conclusion"] = True
                 normality_tests_dict[j]["interpretation"] = pass_i
-    return normality_tests_dict
+
+    # save statistical output to savepath
+    stat_file_name = f"Statistical output for {data_label}.png"
+    stat_save_path = os.path.join(path, stat_file_name)
+    normality_df = pd.DataFrame.from_dict(normality_tests_dict).transpose()
+    styled_df = (
+        normality_df.style.set_caption(
+            f"Statistical Normality Tests for {data_label}"
+        ).set_precision(3)
+        # .apply(color_red)
+    )
+    dfi.export(styled_df, stat_save_path)
+
+    # save descriptives to savepath
+
+    # return success output
+    return f"ouput successfully saved to '{path}'"
+
+
+def color_red(val, alpha=0.05):
+    color = "red" if val < alpha else "black"
+    return "color: %s" % color
 
 
 def check_variance_equality(group_1, group_2):
@@ -175,11 +198,12 @@ def check_variance_equality(group_1, group_2):
 
 def uniquify_dir(path):
     counter = 1
-    while os.path.isdir(path):
-        print(path[-1:])
-        # if path[-1:].isnumeric():
-        # path = path.replace(path[:-1], "")
-        path = path + "_" + str(counter)
+    while os.path.exists(path):
+        if path[-1:].isnumeric():
+            counter = int(path[-1:]) + 1
+            path = path.replace(path[-1:], str(counter))
+        else:
+            path = path + "_" + str(counter)
         counter += 1
     return path
 
@@ -210,16 +234,15 @@ def main():
         "kolmogorov-smirnov",
     ]
 
-    normality_dict = check_normality(
+    normality = check_normality(
         data,
         "Sample_1 - Frogs",
         statistical_options,
         graphical_options,
         "/Users/christopher/Desktop",
     )
-    df = pd.DataFrame.from_dict(normality_dict)
-    print(df)
 
+    print(normality)
     # sys.stdout.close()
 
 

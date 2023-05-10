@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 
-import sys
 import os
-import math
 import numpy as np
 from scipy import stats
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
-import pandas as pd
-import dataframe_image as dfi
+
+# custom HYPY modules
+import hypy_supfunc as sup
 
 """
 CONTINUOUS DATA HYPOTHESIS TESTER
@@ -17,20 +16,22 @@ MILESTONES
 - Finish implementing all assumption checks
     x Graphical checks
     x Statistical tests
-- Work out all options
 
 TODO
 - Differentiate between independent and not t-test
-- Get better acquainted with the assumptions and make these satisfied within the test function
 - Would be cool to perform preliminary analysis on the data and suggest which test would be most suitable.
-- Just put all the main assumption checks in this file, create a new python proj for the actual tests and another for the user interface.
-- Change to one loop for each statistical test, lots of repeat code; condense it.
-- implement sys.stdout if option selected
-x fix uniquify function, need to replace end numerical value if it is numerical
+- Add descriptives output
+- Make data labels more clear, remove them from list
+- Create "Report Writer" that pulls everything in, all pngs and info and culminates it into one document using the statistical report formulas to do a basic write-up on it.
 
 CURRENT WORKING
-- round all results
-- output stats output as image so cant be changed
+
+NOTES
+- maybe seperate the functions that arent directly related to the hypy program into a seperate file
+
+IMPORTANT README INFO
+- Default dpi for output set to 150
+- Bartletts should only be used on normally distributed data 
 """
 
 __author__ = "Christopher J. Blakeney"
@@ -42,8 +43,9 @@ def check_normality(
     data,
     data_label="",
     statistical_options=[],
-    graphical_options=[],
-    save_path="null",
+    figure_options=[],
+    figs_save_path="null",
+    dpi=150,
 ):
     # checks normailty assumption and returns dict
     # conclusion false by default
@@ -67,24 +69,9 @@ def check_normality(
             "interpretation": "",
         },
     }
-    # alpha threshold for normality tests
-    alpha = 0.05
-
-    # pass interpretation
-    pass_i = "likely normally distributed"
-    # fail interpretation
-    fail_i = "likely NOT normally distributed"
-
-    # create folder to store graphs
-    if save_path != "null":
-        folder_name = r"hypy_output"
-        path = os.path.join(save_path, folder_name)
-        path = uniquify_dir(path)
-        os.mkdir(path)
-
     # graphical options
-    for i in graphical_options:
-        if i == "histogram":
+    for i in figure_options:
+        if i == "histogram" and figs_save_path != "null":
             # create histogram from data
             plt.hist(
                 data, edgecolor="black", density=True, bins="auto", color="b", alpha=0.8
@@ -104,125 +91,85 @@ def check_normality(
                 f"Normalized Histogram with Normal Curve: {data_label}\nμ={round(data.mean(), 4)}, σ={round(np.std(data), 4)}"
             )
             # save histogram
-            hist_file_name = f"Histogram for {data_label}.png"
-            hist_save_path = os.path.join(path, hist_file_name)
-            plt.savefig(hist_save_path, dpi=300)
-        elif i == "qq-plot":
+            hist_file_name = f"{data_label} - Histogram.png"
+            hist_save_path = os.path.join(figs_save_path, hist_file_name)
+            plt.savefig(hist_save_path, dpi=dpi)
+        elif i == "qq-plot" and figs_save_path != "null":
             # create qq plot from data
             fig = sm.qqplot(data, line="s")
-            plt.title(f"Quartile-Quartile Plot: {data_label}")
+            plt.title(f"QQ-Plot - {data_label}")
             # save figure
-            qq_file_name = f"QQ-plot for {data_label}.png"
-            qq_save_path = os.path.join(path, qq_file_name)
-            plt.savefig(qq_save_path, dpi=300)
+            qq_file_name = f"{data_label} - QQ-Plot.png"
+            qq_save_path = os.path.join(figs_save_path, qq_file_name)
+            plt.savefig(qq_save_path, dpi=dpi)
 
-    # statistical tests
+    # normality statistical test options
     for j in statistical_options:
         if j == "shapiro-wilks":  # reliable for samples < 1000
             test_stat_shapiro, p_value_shapiro = stats.shapiro(data)
             normality_tests_dict[j]["t"] = test_stat_shapiro
             normality_tests_dict[j]["p"] = p_value_shapiro
-            if p_value_shapiro < alpha:
-                normality_tests_dict[j]["interpretation"] = fail_i
-            else:
-                normality_tests_dict[j]["conclusion"] = True
-                normality_tests_dict[j]["interpretation"] = pass_i
+            sup.test_p_value(p_value_shapiro, "shapiro-wilks", normality_tests_dict)
         elif j == "k-squared":
             test_stat_ksquare, p_value_ksquare = stats.normaltest(data)
             normality_tests_dict[j]["t"] = test_stat_ksquare
             normality_tests_dict[j]["p"] = p_value_ksquare
-            if p_value_ksquare < alpha:
-                normality_tests_dict[j]["interpretation"] = fail_i
-            else:
-                normality_tests_dict[j]["conclusion"] = True
-                normality_tests_dict[j]["interpretation"] = pass_i
+            sup.test_p_value(p_value_ksquare, "k-squared", normality_tests_dict)
         elif j == "kolmogorov-smirnov":
             test_stat_ks, p_value_ks = stats.kstest(data, "norm")
             normality_tests_dict[j]["t"] = test_stat_ks
             normality_tests_dict[j]["p"] = p_value_ks
-            if p_value_ks < alpha:
-                normality_tests_dict[j]["interpretation"] = fail_i
-            else:
-                normality_tests_dict[j]["conclusion"] = True
-                normality_tests_dict[j]["interpretation"] = pass_i
+            sup.test_p_value(p_value_ks, "kolmogorov-smirnov", normality_tests_dict)
 
-    # save statistical output to savepath
-    stat_file_name = f"Statistical output for {data_label}.png"
-    stat_save_path = os.path.join(path, stat_file_name)
-    normality_df = pd.DataFrame.from_dict(normality_tests_dict).transpose()
-    styled_df = (
-        normality_df.style.set_caption(
-            f"Statistical Normality Tests for {data_label}"
-        ).set_precision(3)
-        # .apply(color_red)
-    )
-    dfi.export(styled_df, stat_save_path)
-
-    # save descriptives to savepath
-
-    # return success output
-    return f"ouput successfully saved to '{path}'"
+    # return dict containing results
+    return normality_tests_dict
 
 
-def color_red(val, alpha=0.05):
-    color = "red" if val < alpha else "black"
-    return "color: %s" % color
+def check_variance_equality(group_1, group_2, statistical_options=[]):
+    # checks homogeneity of variances assumption and returns results dict
+    variance_tests_dict = {
+        "bartletts": {
+            "t": 0.0,
+            "p": 0.0,
+            "conclusion": False,
+            "interpretation": "",
+        },
+        "levenes": {
+            "t": 0.0,
+            "p": 0.0,
+            "conclusion": False,
+            "interpretation": "",
+        },
+    }
+    # variance statistical test options
+    for j in statistical_options:
+        if j == "levenes":
+            test_stat_lev, p_value_lev = stats.levene(group_1, group_2)
+            variance_tests_dict[j]["t"] = test_stat_lev
+            variance_tests_dict[j]["p"] = p_value_lev
+            sup.test_p_value(p_value_lev, "levenes", variance_tests_dict)
+        elif j == "bartletts":
+            test_stat_bart, p_value_bart = stats.bartlett(group_1, group_2)
+            variance_tests_dict[j]["t"] = test_stat_bart
+            variance_tests_dict[j]["p"] = p_value_bart
+            sup.test_p_value(p_value_bart, "bartletts", variance_tests_dict)
 
-
-def check_variance_equality(group_1, group_2):
-    print("\nCHECKING HOMOGENEITY OF VARIANCE...")
-    # progress bar
-    with alive_bar(100, bar="filling") as bar:
-        for i in range(100):
-            sleep(0.01)
-            bar()
-    # alpha threshold
-    alpha = 0.05
-    # levenes test for equality of variances
-    test_stat_variance, p_value_variance = stats.levene(group_1, group_2)
-    if p_value_variance < alpha:
-        variance_result = (
-            f"\n \033[1m Levenes Equality of Variances Test: (test_stat=%.3f, p=%.4f < α={alpha})"
-            "\033[0m"
-            "\n    Conclusion: the variances of the samples are likely different\n"
-            % (test_stat_variance, p_value_variance)
-        )
-    else:
-        variance_result = (
-            f"\n \033[1m Levenes Equality of Variances Test: (test_stat=%.3f, p=%.4f < α={alpha})"
-            "\033[0m"
-            "\n    Conclusion: the variances of the samples are likely the same\n"
-        )
-    return variance_result
-
-
-def uniquify_dir(path):
-    counter = 1
-    while os.path.exists(path):
-        if path[-1:].isnumeric():
-            counter = int(path[-1:]) + 1
-            path = path.replace(path[-1:], str(counter))
-        else:
-            path = path + "_" + str(counter)
-        counter += 1
-    return path
+    # return dict containing results
+    return variance_tests_dict
 
 
 def main():
-    # file structure:
-    # >/HyPy
-    # -->output_summary.txt
-    # -->/Graphics
-    # ---->Histogram.png
-    # ---->Q-Q Plot
+    data1 = sup.import_csv_column(
+        "/Users/christopher/my_programs/sample_csvs/sample1.csv", "35", float
+    )
 
-    data = np.random.normal(1, 50, 325)
+    data2 = sup.import_csv_column(
+        "/Users/christopher/my_programs/sample_csvs/sample1.csv", "3", int
+    )
 
-    # txt_summary = "/stats_output/output.txt"
-    # save_path = "/Users/christopher/Desktop"  # make this user input
-    # path = os.path.join(save_path, txt_summary)
-    # os.makedir(path)
-    # sys.stdout = open(path, "w")
+    parent_dir, figs_dir, stats_dir = sup.build_hypy_directory(
+        "/Users/christopher/Desktop"
+    )
 
     graphical_options = [
         "histogram",
@@ -232,18 +179,42 @@ def main():
         "shapiro-wilks",
         "k-squared",
         "kolmogorov-smirnov",
+        "levenes",
+        "bartletts",
     ]
 
-    normality = check_normality(
-        data,
-        "Sample_1 - Frogs",
+    normality_dict = check_normality(
+        data2,
+        "Sample_1",
         statistical_options,
         graphical_options,
-        "/Users/christopher/Desktop",
+        figs_dir,
+        300,
     )
 
-    print(normality)
-    # sys.stdout.close()
+    variance_dict = check_variance_equality(
+        data2,
+        data1,
+        statistical_options,
+    )
+
+    # export normal stats
+    sup.export_dict_png(
+        normality_dict,
+        "Statstical Normality Tests",
+        ["Frogs"],
+        stats_dir,
+        300,
+    )
+
+    # export variance stats
+    sup.export_dict_png(
+        variance_dict,
+        "Homogeneity of Variance Tests",
+        ["Frogs", "Dogs"],
+        stats_dir,
+        300,
+    )
 
 
 if __name__ == "__main__":

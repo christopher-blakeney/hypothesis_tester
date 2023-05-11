@@ -19,7 +19,7 @@ def export_dict_png(dic, df_title, data_labels=[], save_path="null", dpi=150):
     stat_file_name = f"{df_title}_{data_labels}.png"
     stat_save_path = os.path.join(save_path, stat_file_name)
     df = pd.DataFrame.from_dict(dic).transpose()
-    styled_df = df.style.set_caption(f"{data_labels} {df_title}").format(
+    styled_df = df.style.set_caption(f"{df_title} {data_labels}").format(
         precision=3
     )
     dfi.export(styled_df, stat_save_path, dpi=dpi)
@@ -33,6 +33,9 @@ def test_p_value(p, test, result_dict):
     elif test in ["shapiro-wilks", "k-squared", "kolmogorov-smirnov"]:
         fail_i = "likely NOT normally distributed"
         pass_i = "likely normally distributed"
+    elif test in ["two-tailed", "one-tailed"]:
+        fail_i = "data likely NOT from the same population"
+        pass_i = "data likely from the same population"
     # set alpha threshold
     alpha = 0.05
     if p < alpha:

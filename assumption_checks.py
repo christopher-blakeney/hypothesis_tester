@@ -31,8 +31,13 @@ NOTES
 - maybe seperate the functions that arent directly related to the hypy program into a seperate file
 
 IMPORTANT README INFO
+- This program is for measuring continuous, normally distributed, randomly sampled, and homogenous samples.
 - Default dpi for output set to 150
-- Bartletts should only be used on normally distributed data 
+- Bartletts should only be used on normally distributed data
+- TTESTS are used to compare the means of two related or unrelated sample groups. Tests the applicability of an assumption to a population of interest. Ttests are only applicable to two data groups.
+    - One-tailed t-test is DIRECTIONAL, determines the difference in sample means in a single direction (right or left tail).
+    - Two-tailed is non-directional, determines if there is any relationship between sample means in either direction.
+    - So when you expect a single value hypothesis, like mean1=mean2, a one-tailed test would be preferable. A two-tailed test makes more sense if your hypothesis assumes means to be greater than or less than each other.
 """
 
 __author__ = "Christopher J. Blakeney"
@@ -58,12 +63,6 @@ def check_normality(
             "interpretation": "",
         },
         "k-squared": {
-            "t": 0.0,
-            "p": 0.0,
-            "conclusion": False,
-            "interpretation": "",
-        },
-        "kolmogorov-smirnov": {
             "t": 0.0,
             "p": 0.0,
             "conclusion": False,
@@ -116,11 +115,6 @@ def check_normality(
             normality_tests_dict[j]["t"] = test_stat_ksquare
             normality_tests_dict[j]["p"] = p_value_ksquare
             sup.test_p_value(p_value_ksquare, "k-squared", normality_tests_dict)
-        elif j == "kolmogorov-smirnov":
-            test_stat_ks, p_value_ks = stats.kstest(data, "norm")
-            normality_tests_dict[j]["t"] = test_stat_ks
-            normality_tests_dict[j]["p"] = p_value_ks
-            sup.test_p_value(p_value_ks, "kolmogorov-smirnov", normality_tests_dict)
 
     # return dict containing results
     return normality_tests_dict

@@ -5,6 +5,7 @@ import csv
 import codecs
 import numpy as np
 
+
 def import_csv_column(csvfile, col, dtype):
     data = codecs.open(csvfile, "r", encoding="utf-8", errors="ignore")
     file = csv.DictReader(data)
@@ -14,14 +15,13 @@ def import_csv_column(csvfile, col, dtype):
     array = np.array(lst)
     return array
 
+
 def export_dict_png(dic, df_title, data_labels=[], save_path="null", dpi=150):
     # save statistical output to savepath
     stat_file_name = f"{df_title}_{data_labels}.png"
     stat_save_path = os.path.join(save_path, stat_file_name)
     df = pd.DataFrame.from_dict(dic).transpose()
-    styled_df = df.style.set_caption(f"{df_title} {data_labels}").format(
-        precision=3
-    )
+    styled_df = df.style.set_caption(f"{df_title} {data_labels}").format(precision=3)
     dfi.export(styled_df, stat_save_path, dpi=dpi)
 
 
@@ -33,7 +33,7 @@ def test_p_value(p, test, result_dict):
     elif test in ["shapiro-wilks", "k-squared", "kolmogorov-smirnov"]:
         fail_i = "likely NOT normally distributed"
         pass_i = "likely normally distributed"
-    elif test in ["two-tailed", "one-tailed"]:
+    elif test in ["one-sample", "two-sample"]:
         fail_i = "data likely NOT from the same population"
         pass_i = "data likely from the same population"
     # set alpha threshold

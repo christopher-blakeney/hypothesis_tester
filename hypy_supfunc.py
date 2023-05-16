@@ -5,6 +5,14 @@ import csv
 import codecs
 import numpy as np
 
+# set alpha threshold
+global ALPHA
+ALPHA = 0.05
+
+
+def change_dict_key(dic, old_key, new_key, default=None):
+    dic[new_key] = dic.pop(old_key, default)
+
 
 def import_csv_column(csvfile, col, dtype):
     data = codecs.open(csvfile, "r", encoding="utf-8", errors="ignore")
@@ -16,29 +24,47 @@ def import_csv_column(csvfile, col, dtype):
     return array
 
 
-def export_dict_png(dic, df_title, data_labels=[], save_path="null", dpi=150):
-    # save statistical output to savepath
+def export_dict_png(
+    dic, nested=False, df_title="Title", data_labels=[], save_path="null", dpi=150
+):
+    # deal with nested garbage
+    if nested:
+        df = pd.DataFrame.from_dict(
+            {(i, j): dic[i][j] for i in dic.keys() for j in dic[i].keys()},
+            orient="index",
+        )
+    else:
+        df = pd.DataFrame.from_dict(dic).transpose()
+    # save output to savepath
     stat_file_name = f"{df_title}_{data_labels}.png"
     stat_save_path = os.path.join(save_path, stat_file_name)
-    df = pd.DataFrame.from_dict(dic).transpose()
-    styled_df = df.style.set_caption(f"{df_title} {data_labels}").format(precision=3)
+    styled_df = (
+        df.style.set_caption(f"{df_title} {data_labels}")
+        .format(precision=3)
+        .applymap(highlight_fail)
+    )
     dfi.export(styled_df, stat_save_path, dpi=dpi)
+
+
+def highlight_fail(cell):
+    if type(cell) != str and cell < ALPHA:
+        return "color: red"
+    else:
+        return "color: black"
 
 
 def test_p_value(p, test, result_dict):
     # set interpretations based on input dict
     if test in ["bartletts", "levenes"]:
-        fail_i = "variances likely NOT homogeneous"
-        pass_i = "variances likely homogeneous"
+        fail_i = "likely NOT homogeneous"
+        pass_i = "likely homogeneous"
     elif test in ["shapiro-wilks", "k-squared", "kolmogorov-smirnov"]:
         fail_i = "likely NOT normally distributed"
         pass_i = "likely normally distributed"
     elif test in ["one-sample", "two-sample"]:
-        fail_i = "data likely NOT from the same population"
-        pass_i = "data likely from the same population"
-    # set alpha threshold
-    alpha = 0.05
-    if p < alpha:
+        fail_i = "likely NOT from the same population"
+        pass_i = "likely from the same population"
+    if p < ALPHA:
         result_dict[test]["interpretation"] = fail_i
     else:
         result_dict[test]["conclusion"] = True

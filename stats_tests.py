@@ -44,14 +44,14 @@ def ttest(
     assumption_dict["s1 normality tests"] = norm_tests_dict
 
     failed_output = (
-        f"input data did not meet normailty and/or homogeneity of variance assumptions."
-        f"a ttest is not appropriate for this data, please consider transforming your data or using"
-        f"nonparametric statistical methods"
+        f"input data did not meet normailty and/or homogeneity of variance assumptions. "
+        f"A ttest is not appropriate for this data, please consider transforming your data or using "
+        f"nonparametric statistical methods. Please see save path for a summary of assumption tests."
     )
 
     # if assumptions are met, continue with test, if not, print failure
     for test in assumption_dict["s1 normality tests"]:
-        if test[3]:
+        if assumption_dict["s1 normality tests"][test]["conclusion"]:
             s1_norm_test_counter += 1
     if s1_norm_test_counter == len(assumption_dict["s1 normality tests"]):
         # conduct one-sample t-test
@@ -84,11 +84,11 @@ def ttest(
         )
         assumption_dict["homogeneity of variance tests"] = variance_tests_dict
 
-        for norm_test in assumption_dict["s2 normality tests"]:
-            if norm_test[3]:
+        for n_test in assumption_dict["s2 normality tests"]:
+            if assumption_dict["s2 normality tests"][n_test]["conclusion"]:
                 s2_norm_test_counter += 1
-        for var_test in assumption_dict["homogeneity of variance tests"]:
-            if var_test[3]:
+        for v_test in assumption_dict["homogeneity of variance tests"]:
+            if assumption_dict["homogeneity of variance tests"][v_test]["conclusion"]:
                 variance_test_counter += 1
         if (
             s2_norm_test_counter == len(assumption_dict["s2 normality tests"])
@@ -96,6 +96,7 @@ def ttest(
             and variance_test_counter
             == len(assumption_dict["homogeneity of variance tests"])
         ):
+            print(variance_test_counter, s2_norm_test_counter, s1_norm_test_counter)
             # conduct ttest
             t_stat, t_p_value = stats.ttest_1samp(group_1, pop_mean)
             ttest_dict["two-sample"]["t"] = t_stat
@@ -110,6 +111,12 @@ def ttest(
                 )
         else:
             print(failed_output)
+    # change dict names for output
+    sup.change_dict_key(assumption_dict, "s1 normality tests", data_labels[0].title())
+    sup.change_dict_key(assumption_dict, "s2 normality tests", data_labels[1].title())
+    sup.change_dict_key(
+        assumption_dict, "homogeneity of variance tests", "Variance Equality"
+    )
 
     return assumption_dict, ttest_dict
 
@@ -120,4 +127,13 @@ data2 = np.random.normal(2, 400, 350)
 
 assump_dict, ttest_dict = ttest(
     data1, data2, ["frogs", "apples"], 150, "two-sample", "one-tailed"
+)
+
+sup.export_dict_png(
+    assump_dict,
+    True,
+    "Assumption Tests",
+    ["frogs", "apples"],
+    "/Users/christopher/Desktop",
+    300,
 )

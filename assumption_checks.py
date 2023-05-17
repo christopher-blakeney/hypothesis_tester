@@ -8,7 +8,7 @@ import statsmodels.api as sm
 import numpy as np
 
 # custom HYPY modules
-import hypy_supfunc as sup
+import supfunc as sup
 
 """
 CONTINUOUS DATA HYPOTHESIS TESTER
@@ -24,11 +24,6 @@ TODO
 - Add descriptives output
 - Make data labels more clear, remove them from list
 - Create "Report Writer" that pulls everything in, all pngs and info and culminates it into one document using the statistical report formulas to do a basic write-up on it.
-
-CURRENT WORKING
-
-NOTES
-- maybe seperate the functions that arent directly related to the hypy program into a seperate file
 
 IMPORTANT README INFO
 - This program is for measuring continuous, normally distributed, randomly sampled, and homogenous samples.

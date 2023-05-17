@@ -3,7 +3,7 @@ from scipy import stats
 
 # custom hypy modules
 import assumption_checks as assump
-import hypy_supfunc as sup
+import supfunc as sup
 
 
 def ttest(
@@ -111,6 +111,7 @@ def ttest(
                 )
         else:
             print(failed_output)
+            SystemExit(1)
     # change dict names for output
     sup.change_dict_key(assumption_dict, "s1 normality tests", data_labels[0].title())
     sup.change_dict_key(assumption_dict, "s2 normality tests", data_labels[1].title())
@@ -119,21 +120,3 @@ def ttest(
     )
 
     return assumption_dict, ttest_dict
-
-
-# generate normal data
-data1 = np.random.normal(1, 500, 345)
-data2 = np.random.normal(2, 400, 350)
-
-assump_dict, ttest_dict = ttest(
-    data1, data2, ["frogs", "apples"], 150, "two-sample", "one-tailed"
-)
-
-sup.export_dict_png(
-    assump_dict,
-    True,
-    "Assumption Tests",
-    ["frogs", "apples"],
-    "/Users/christopher/Desktop",
-    300,
-)

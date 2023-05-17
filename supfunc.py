@@ -36,10 +36,10 @@ def export_dict_png(
     else:
         df = pd.DataFrame.from_dict(dic).transpose()
     # save output to savepath
-    stat_file_name = f"{df_title}_{data_labels}.png"
+    stat_file_name = f"{df_title}_{data_labels[0]}_{data_labels[1]}.png"
     stat_save_path = os.path.join(save_path, stat_file_name)
     styled_df = (
-        df.style.set_caption(f"{df_title} {data_labels}")
+        df.style.set_caption(f"{df_title}: {data_labels[0]}, {data_labels[1]}")
         .format(precision=3)
         .applymap(highlight_fail)
     )

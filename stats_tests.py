@@ -41,11 +41,12 @@ def ttest(
     s1_norm_test_counter = 0
     s2_norm_test_counter = 0
     variance_test_counter = 0
+    fail_count = 0
     assumption_dict["s1 normality tests"] = norm_tests_dict
 
     failed_output = (
         f"input data did not meet normailty and/or homogeneity of variance assumptions. "
-        f"A ttest is not appropriate for this data, please consider transforming your data or using "
+        f"Please consider transforming your data or using "
         f"nonparametric statistical methods. Please see save path for a summary of assumption tests."
     )
 
@@ -70,7 +71,8 @@ def ttest(
     elif test_type == "one-sample" and pop_mean == 0:
         print("Please provide a population mean of which to compare your sample")
     else:
-        print(failed_output)
+        print("Normality assumption failed")
+        fail_count += 1
         SystemExit(1)
 
     # two-sample
@@ -110,7 +112,8 @@ def ttest(
                     ttest_dict["two-sample"]["p"], "two-sample", ttest_dict
                 )
         else:
-            print(failed_output)
+            print("Equal variances assumption failed")
+            fail_count += 1
             SystemExit(1)
     # change dict names for output
     sup.change_dict_key(assumption_dict, "s1 normality tests", data_labels[0].title())
@@ -118,5 +121,8 @@ def ttest(
     sup.change_dict_key(
         assumption_dict, "homogeneity of variance tests", "Variance Equality"
     )
+
+    if fail_count == 2:
+        print(failed_output)
 
     return assumption_dict, ttest_dict

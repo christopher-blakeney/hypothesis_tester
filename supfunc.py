@@ -25,7 +25,13 @@ def import_csv_column(csvfile, col, dtype):
 
 
 def export_dict_png(
-    dic, nested=False, df_title="Title", data_labels=[], save_path="null", dpi=150
+    dic,
+    nested=False,
+    df_title="Title",
+    data_labels=[],
+    save_path="null",
+    dpi=150,
+    highlight_red=False,
 ):
     # deal with nested garbage
     if nested:
@@ -36,13 +42,13 @@ def export_dict_png(
     else:
         df = pd.DataFrame.from_dict(dic).transpose()
     # save output to savepath
-    stat_file_name = f"{df_title}_{data_labels[0]}_{data_labels[1]}.png"
+    stat_file_name = f"{df_title}.png"
     stat_save_path = os.path.join(save_path, stat_file_name)
-    styled_df = (
-        df.style.set_caption(f"{df_title}: {data_labels[0]}, {data_labels[1]}")
-        .format(precision=3)
-        .applymap(highlight_fail)
-    )
+    styled_df = df.style.set_caption(
+        f"{df_title}: {data_labels[0]}, {data_labels[1]}"
+    ).format(precision=3)
+    if highlight_red:
+        styled_df = styled_df.applymap(highlight_fail)
     dfi.export(styled_df, stat_save_path, dpi=dpi)
 
 
@@ -71,9 +77,12 @@ def test_p_value(p, test, result_dict):
         result_dict[test]["interpretation"] = pass_i
 
 
-def build_hypy_directory(save_path="null", figs=True, stats=True):
+def build_hypy_directory(save_path="null", figs=True, stats=True, ttest=True):
     # file structure:
     # >/hypy_output (or hypy_output_1 etc if already exists)
+    # -->/t_test
+    # ---->t_test.png
+    # ---->report.md
     # -->/assumption_tests
     # ---->/stats
     # ------>Normality.png
@@ -84,6 +93,7 @@ def build_hypy_directory(save_path="null", figs=True, stats=True):
     if save_path != "null":
         parent_path = uniquify_dir(os.path.join(save_path, r"hypy_output"))
         assumptions_path = os.path.join(parent_path, r"assumption_tests")
+        ttest_path = os.path.join(parent_path, r"t_test")
         path_structure = [parent_path, assumptions_path]
         figs_path = os.path.join(assumptions_path, r"figures")
         stats_path = os.path.join(assumptions_path, r"stats")
@@ -91,11 +101,13 @@ def build_hypy_directory(save_path="null", figs=True, stats=True):
             path_structure.append(figs_path)
         if stats:
             path_structure.append(stats_path)
+        if ttest:
+            path_structure.append(ttest_path)
         for path in path_structure:
             os.mkdir(path)
     else:
         print("Please provide save path to build directory")
-    return parent_path, figs_path, stats_path
+    return parent_path, figs_path, stats_path, ttest_path
 
 
 def uniquify_dir(path):

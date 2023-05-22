@@ -5,6 +5,9 @@ import argparse
 from pathlib import Path
 import csv
 
+# delete - only used for test data generation
+import numpy as np
+
 # hypy modules
 import supfunc as sup  # suplimentary functions
 import assumption_checks as assump  # statistical assumptions tests
@@ -21,6 +24,15 @@ class Documentation:
 
 
 def main():
+    # TEST DATA
+    # Groups with Unequal Variance
+    group1 = np.random.normal(0.5, 15, 100)
+    group2 = np.random.normal(0.75, 5, 100)
+
+    # Groups with Equal Variance
+    group3 = np.random.normal(1, 5, 100)
+    group4 = np.random.normal(0.25, 5, 100)
+
     # import docs
     docs = Documentation()
     # CLI
@@ -96,22 +108,62 @@ def main():
 
     # deal with errors and improper usage
     if save_path != "none":
+        csv_pass = False
         if test_type in ["t-one", "assump-one"]:
             # set data label for sample one
             try:
                 s1_label = col_list[0][0]
                 # import data
                 s1 = sup.import_csv_column(csvfile, s1_label, float)
+                csv_pass = True
             except IndexError:
                 print(docs.improper_csv_format)
-            if test_type == "t-one" and popmean != 0:
+            if csv_pass:
+                # one sample ttest and assumption check
+                assump_dict, ttest_dict, nr, vr, summary_str = st.ttest(
+                    group1, None, [s1_label], 1, "one-sample", tail_type
+                )
+                # build directory
+                parent_dir, a_dir, figs_dir, stats_dir = sup.build_hypy_directory(
+                    save_path
+                )
+                # export assumption checks
+                sup.export_dict_png(
+                    assump_dict,
+                    False,
+                    "Assumption Checks",
+                    [s1_label],
+                    stats_dir,
+                    300,
+                    False,
+                )
+                # export figures
+                assump.check_normality(
+                    group1,
+                    s1_label,
+                    [],
+                    ["histogram", "qq-plot"],
+                    figs_dir,
+                    300,
+                )
+                # export assumption summary
+                sup.export_assump_summary(a_dir, summary_str)
+            if test_type == "t-one" and popmean != 0 and nr:
                 # one sample t-test
-                print("yas")
+                # add ttest path
+                ttest_dir = sup.build_testdir(parent_dir, "ttest")
+                # export ttest as png
+                sup.export_dict_png(
+                    ttest_dict["one-sample"],
+                    False,
+                    "One Sample T Test",
+                    [s1_label],
+                    ttest_dir,
+                    300,
+                    False,
+                )
             elif test_type == "t-one" and popmean == 0:
                 print(docs.no_popmean)
-            elif test_type == "assump-one":
-                # one sample assumption check
-                print("yasyas")
         elif test_type in ["t-two", "assump-two"]:
             # set data labels
             try:
@@ -125,11 +177,12 @@ def main():
                 SystemExit(1)
             if csv_pass:
                 # two sample t-test and two-sample assumption check
-                assump_dict, ttest_dict = st.ttest(
-                    s1, s2, [s1_label, s2_label], 0, "two-sample", tail_type
+                assump_dict, ttest_dict, nr, vr, summary_str = st.ttest(
+                    group3, group4, [s1_label, s2_label], 0, "two-sample", tail_type
                 )
-                parent_dir, figs_dir, stats_dir, ttest_dir = sup.build_hypy_directory(
-                    save_path, ttest=False
+                # build directory
+                parent_dir, a_dir, figs_dir, stats_dir = sup.build_hypy_directory(
+                    save_path
                 )
                 # export assumption checks
                 sup.export_dict_png(
@@ -139,7 +192,7 @@ def main():
                     [s1_label, s2_label],
                     stats_dir,
                     300,
-                    False,
+                    True,
                 )
                 # export figures
                 assump.check_normality(
@@ -158,12 +211,15 @@ def main():
                     figs_dir,
                     300,
                 )
-                if test_type == "t-two":
+                # export assumption summary
+                sup.export_assump_summary(a_dir, summary_str)
+                # if ttest
+                if test_type == "t-two" and nr and vr:
                     # add ttest path
-
-                    # export ttest
+                    ttest_dir = sup.build_testdir(parent_dir, "ttest")
+                    # export ttest as png
                     sup.export_dict_png(
-                        ttest_dict,
+                        ttest_dict["two-sample"],
                         False,
                         "Two Sample T Test",
                         [s1_label, s2_label],

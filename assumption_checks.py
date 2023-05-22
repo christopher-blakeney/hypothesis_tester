@@ -10,31 +10,6 @@ import numpy as np
 # custom HYPY modules
 import supfunc as sup
 
-"""
-CONTINUOUS DATA HYPOTHESIS TESTER
-
-MILESTONES
-- Finish implementing all assumption checks
-    x Graphical checks
-    x Statistical tests
-
-TODO
-- Differentiate between independent and not t-test
-- Would be cool to perform preliminary analysis on the data and suggest which test would be most suitable.
-- Add descriptives output
-- Make data labels more clear, remove them from list
-- Create "Report Writer" that pulls everything in, all pngs and info and culminates it into one document using the statistical report formulas to do a basic write-up on it.
-
-IMPORTANT README INFO
-- This program is for measuring continuous, normally distributed, randomly sampled, and homogenous samples.
-- Default dpi for output set to 150
-- Bartletts should only be used on normally distributed data
-- TTESTS are used to compare the means of two related or unrelated sample groups. Tests the applicability of an assumption to a population of interest. Ttests are only applicable to two data groups.
-    - One-tailed t-test is DIRECTIONAL, determines the difference in sample means in a single direction (right or left tail).
-    - Two-tailed is non-directional, determines if there is any relationship between sample means in either direction.
-    - So when you expect a single value hypothesis, like mean1=mean2, a one-tailed test would be preferable. A two-tailed test makes more sense if your hypothesis assumes means to be greater than or less than each other.
-"""
-
 __author__ = "Christopher J. Blakeney"
 __version__ = "0.1.0"
 __license__ = ""
@@ -52,14 +27,14 @@ def check_normality(
     # conclusion false by default
     normality_tests_dict = {
         "shapiro-wilks": {
-            "t": 0.0,
-            "p": 0.0,
+            "t": [0.0],
+            "p": [0.0],
             "conclusion": False,
             "interpretation": "",
         },
         "k-squared": {
-            "t": 0.0,
-            "p": 0.0,
+            "t": [0.0],
+            "p": [0.0],
             "conclusion": False,
             "interpretation": "",
         },
@@ -149,66 +124,8 @@ def check_variance_equality(group_1, group_2, statistical_options=[]):
 
 
 def main():
-    data1 = np.random.normal(1, 500, 345)
-
-    # = sup.import_csv_column(
-    #    "/Users/christopher/my_programs/sample_csvs/sample1.csv", "35", float
-    # )
-
-    data2 = np.random.normal(2, 400, 350)
-
-    # = sup.import_csv_column(
-    #    "/Users/christopher/my_programs/sample_csvs/sample1.csv", "3", int
-    # )
-
-    parent_dir, figs_dir, stats_dir = sup.build_hypy_directory(
-        "/Users/christopher/Desktop"
-    )
-
-    graphical_options = [
-        "histogram",
-        "qq-plot",
-    ]
-    statistical_options = [
-        "shapiro-wilks",
-        "k-squared",
-        "kolmogorov-smirnov",
-        "levenes",
-        "bartletts",
-    ]
-
-    normality_dict = check_normality(
-        data2,
-        "Sample_1",
-        statistical_options,
-        graphical_options,
-        figs_dir,
-        300,
-    )
-
-    variance_dict = check_variance_equality(
-        data2,
-        data1,
-        statistical_options,
-    )
-
-    # export normal stats
-    sup.export_dict_png(
-        normality_dict,
-        "Statstical Normality Tests",
-        ["Frogs"],
-        stats_dir,
-        300,
-    )
-
-    # export variance stats
-    sup.export_dict_png(
-        variance_dict,
-        "Homogeneity of Variance Tests",
-        ["Frogs", "Dogs"],
-        stats_dir,
-        300,
-    )
+    # hi
+    f = 0
 
 
 if __name__ == "__main__":

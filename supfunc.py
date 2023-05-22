@@ -40,13 +40,18 @@ def export_dict_png(
             orient="index",
         )
     else:
-        df = pd.DataFrame.from_dict(dic).transpose()
+        df = pd.DataFrame.from_dict(dic)  # .transpose()
     # save output to savepath
     stat_file_name = f"{df_title}.png"
     stat_save_path = os.path.join(save_path, stat_file_name)
-    styled_df = df.style.set_caption(
-        f"{df_title}: {data_labels[0]}, {data_labels[1]}"
-    ).format(precision=3)
+    if len(data_labels) == 2:
+        styled_df = df.style.set_caption(
+            f"{df_title}: {data_labels[0]}, {data_labels[1]}"
+        ).format(precision=3)
+    else:
+        styled_df = df.style.set_caption(f"{df_title}: {data_labels[0]}").format(
+            precision=3
+        )
     if highlight_red:
         styled_df = styled_df.applymap(highlight_fail)
     dfi.export(styled_df, stat_save_path, dpi=dpi)
@@ -60,27 +65,37 @@ def highlight_fail(cell):
 
 
 def test_p_value(p, test, result_dict):
+    # check whether t-test, wherein interpretation flipped
+    t = False
     # set interpretations based on input dict
     if test in ["bartletts", "levenes"]:
-        fail_i = "likely NOT homogeneous"
-        pass_i = "likely homogeneous"
+        less_p = "likely NOT homogeneous"
+        greater_p = "likely homogeneous"
     elif test in ["shapiro-wilks", "k-squared", "kolmogorov-smirnov"]:
-        fail_i = "likely NOT normally distributed"
-        pass_i = "likely normally distributed"
+        less_p = "likely NOT normally distributed"
+        greater_p = "likely normally distributed"
     elif test in ["one-sample", "two-sample"]:
-        fail_i = "likely NOT from the same population"
-        pass_i = "likely from the same population"
-    if p < ALPHA:
-        result_dict[test]["interpretation"] = fail_i
+        less_p = "likely from the same population"
+        greater_p = "likely NOT from the same population"
+        t = True
+    # test p
+    if p < ALPHA and not t:
+        result_dict[test]["interpretation"] = less_p
+    elif p < ALPHA and t:
+        result_dict[test]["interpretation"] = less_p
+        result_dict[test]["conclusion"] = True
+    elif p > ALPHA and t:
+        result_dict[test]["conclusion"] = False
+        result_dict[test]["interpretation"] = greater_p
     else:
         result_dict[test]["conclusion"] = True
-        result_dict[test]["interpretation"] = pass_i
+        result_dict[test]["interpretation"] = greater_p
 
 
 def build_hypy_directory(save_path="null", figs=True, stats=True, ttest=True):
     # file structure:
     # >/hypy_output (or hypy_output_1 etc if already exists)
-    # -->/t_test
+    # -->/t_test # added by test dir function
     # ---->t_test.png
     # ---->report.md
     # -->/assumption_tests
@@ -93,7 +108,6 @@ def build_hypy_directory(save_path="null", figs=True, stats=True, ttest=True):
     if save_path != "null":
         parent_path = uniquify_dir(os.path.join(save_path, r"hypy_output"))
         assumptions_path = os.path.join(parent_path, r"assumption_tests")
-        ttest_path = os.path.join(parent_path, r"t_test")
         path_structure = [parent_path, assumptions_path]
         figs_path = os.path.join(assumptions_path, r"figures")
         stats_path = os.path.join(assumptions_path, r"stats")
@@ -101,13 +115,21 @@ def build_hypy_directory(save_path="null", figs=True, stats=True, ttest=True):
             path_structure.append(figs_path)
         if stats:
             path_structure.append(stats_path)
-        if ttest:
-            path_structure.append(ttest_path)
         for path in path_structure:
             os.mkdir(path)
     else:
         print("Please provide save path to build directory")
-    return parent_path, figs_path, stats_path, ttest_path
+    return parent_path, assumptions_path, figs_path, stats_path
+
+
+def build_testdir(parent_path, test):
+    path_structure = []
+    ttest_path = os.path.join(parent_path, r"t_test")
+    if test == "ttest":
+        path_structure.append(ttest_path)
+    for path in path_structure:
+        os.mkdir(path)
+    return ttest_path
 
 
 def uniquify_dir(path):
@@ -120,3 +142,9 @@ def uniquify_dir(path):
             path = path + "_" + str(counter)
         counter += 1
     return path
+
+
+def export_assump_summary(savepath, string):
+    f = open(os.path.join(savepath, "quick_summary.txt"), "w")
+    f.write(string)
+    f.close()

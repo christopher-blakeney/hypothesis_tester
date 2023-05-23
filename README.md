@@ -1,7 +1,9 @@
 # HyPy
 >A program to help you conduct hypothesis tests from the command line.
 
-Working with samples of data requires decisions, one of the most pertinent being the use of parametric or nonparametric statistical methods.
+Working with samples of data requires decisions, one of the most pertinent being the use of parametric or nonparametric statistical methods. Hypy was made to take this decision out of human hands, or, at the very least, to suppliment it with a programmatic decision.
+
+Graphical tests will be provided for the human side of the equation, whereby intuition and familiarity can work to develop an initial opinion on the dataset and its distribution. Statistical tests produce either a **True** or **False** value depending on the p value; this is not up to interpretation as much as the graphical tests are.
 
 ### Parametric statistical methods
 assumes that the data has a known and specific distribution (often a normal, or gaussian distribution; a bell-shaped curvature with symmetry about the mean.
@@ -15,8 +17,8 @@ So, how do we figure out if our sample data is normally distributed? We attempt 
 
 Two common types of techniques exist for evaluating the shape of a distribution.
 **Graphical**:
-	- plot the data points graphically and interpret them to determine normality 
-		- histogram
-		- Quartile-Quartile (Q-Q) plot
+plot the data points graphically and interpret them to determine normality 
+
 **Statistical**:
-	- a calculation used to quantify the probability of the data in question existing within a normal distribution
+a calculation used to quantify the probability of the data in question existing within a normal distribution
+
